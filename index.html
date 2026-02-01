@@ -619,12 +619,24 @@
         }
 
         function generateFullReport(eq, G, S, R, meteo, rad) {
+            let hasDanger = (eq.mag > 4.5 && eq.dist < 1000) || G >= 2 || rad > 0.4 || meteo.wind_gusts_10m > 60;
+
             let r = `[ SYSTEM_REPORT_v4.5 · ${selected.name.toUpperCase()} ]\n`;
             r += `Широта: ${selected.lat.toFixed(4)} | Довгота: ${selected.lon.toFixed(4)}\n\n`;
+
+            if (hasDanger) {
+                r += `>>> [ ANOMALY_DETECTION_LOG ] <<<\n`;
+                if (eq.mag > 4) r += `- SEISMIC: Detected ${eq.mag} MAG event within ${Math.round(eq.dist)}km.\n`;
+                if (G >= 2) r += `- GEOMAGNETIC: Solar Storm Level G${G} active.\n`;
+                if (rad > 0.4) r += `- RADIATION: Cosmic flux exceeds safety threshold (${rad} μSv/h).\n`;
+                if (meteo.wind_gusts_10m > 60) r += `- ATMOSPHERE: Critical wind gusts detected.\n`;
+                r += `\n`;
+            }
+
             r += `1. ГЕОФІЗИЧНИЙ МОНІТОРИНГ:\n`;
             r += `- Найближчий епіцентр: ${eq.mag.toFixed(1)} MAG\n`;
             r += `- Дистанція: ${Math.round(eq.dist)} км\n`;
-            r += `- Статус сейсміки: ${eq.mag > 4 ? 'АКТИВНИЙ_РИЗИК' : 'СТАБІЛЬНО'}\n\n`;
+            r += `- Статус сейсміки: ${eq.mag > 4 ? 'УВАГА: АКТИВНІСТЬ' : 'СТАБІЛЬНО'}\n\n`;
             r += `2. КОСМІЧНІ ПАРАМЕТРИ (US NOAA):\n`;
             r += `- Геомагнітна буря: G${G} (Scale 0-5)\n`;
             r += `- Сонячна радіація: S${S}\n`;
@@ -632,7 +644,15 @@
             r += `3. АТМОСФЕРНІ АНОМАЛІЇ:\n`;
             r += `- Вітер: ${meteo.wind_speed_10m} км/год (Пориви: ${meteo.wind_gusts_10m})\n`;
             r += `- Тиск: ${meteo.pressure_msl} hPa\n\n`;
-            r += `ВИСНОВОК: ` + (G > 2 || eq.mag > 5 ? "КРИТИЧНИЙ РІВЕНЬ. НЕОБХІДНИЙ МОНІТОРИНГ." : "СТАН ПЛАНЕТАРНОЇ СІТКИ В МЕЖАХ НОРМИ.");
+
+            r += `[ ВИСНОВОК СИСТЕМИ ]\n`;
+            if (hasDanger) {
+                r += `!!! УВАГА: ВИЯВЛЕНО ПЛАНЕТАРНУ АНОМАЛІЮ. РЕКОМЕНДОВАНО РЕЖИМ ПІДВИЩЕНОЇ ГОТОВНОСТІ. СИНХРОНІЗАЦІЯ З РЕГІОНАЛЬНИМИ СЛУЖБАМИ ПОРУШЕНА.`;
+                document.getElementById('report-box').style.borderColor = 'var(--danger)';
+            } else {
+                r += `СТАН ПЛАНЕТАРНОЇ СІТКИ В МЕЖАХ НОРМИ. АНОМАЛЬНИХ ВІДХИЛЕНЬ НЕ ЗАФІКСОВАНО.`;
+                document.getElementById('report-box').style.borderColor = 'var(--border)';
+            }
 
             document.getElementById('report-box').innerText = r;
         }
